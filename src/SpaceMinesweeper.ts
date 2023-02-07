@@ -212,7 +212,7 @@ export class SpaceMinesweeper extends gfx.GfxApp
         if (this.hasBossSpawned) {
             this.boss.update(deltaTime);
             this.boss.lookAt(this.origin);
-            if (this.boss.position.distanceTo(this.ship.position) > 0.6) this.boss.translateY(deltaTime * 0.15);
+            if (this.boss.position.distanceTo(this.ship.position) > 0.6) this.boss.translateY(deltaTime * 0.2);
             else this.boss.rotating();
             if (this.boss.isRotating())
             {
