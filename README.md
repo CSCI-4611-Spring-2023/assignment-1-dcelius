@@ -19,10 +19,13 @@ You should fill out this information before submitting your assignment.
 
 1. **Third Party Assets**. List the name and source of any third party assets that you added, such as models, images, sounds, or any other content used that was not solely written by you. 
 
-   background.mp3 : https://www.fesliyanstudios.com/royalty-free-music/download/8-bit-retro-funk/883 
-   boss.mp3 : https://www.fesliyanstudios.com/royalty-free-music/download/boss-time/2340
-   laserRetro_001.ogg : kenney.nl - Sci-Fi Sounds Pack
-   boss.png : kenney.nl - Space Shooter Extension Pack
+   background.mp3 : 8-bit Retro Funk - https://www.fesliyanstudios.com/royalty-free-music/download/8-bit-retro-funk/883 
+   
+   boss.mp3 : Boss Time - https://www.fesliyanstudios.com/royalty-free-music/download/boss-time/2340
+   
+   laserRetro_001.ogg : Sci-Fi Sounds Pack - Kenney.nl
+   
+   boss.png : Space Shooter Extension Pack - Kenney.nl
 
 
 2. **Wizard Bonus Functionality**. If you completed the wizard bonus challenge, then please provide a brief description along with any instructions for the person grading your assignment.
