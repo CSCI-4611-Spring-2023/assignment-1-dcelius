@@ -6,6 +6,7 @@
   "license": "CC BY-NC-SA 4.0",
   "type": "module",
   "devDependencies": {
+    "@types/howler": "^2.2.7",
     "@typescript-eslint/eslint-plugin": "^5.36.2",
     "@typescript-eslint/parser": "^5.36.2",
     "esbuild-plugin-glsl": "^1.1.0",
@@ -20,5 +21,8 @@
     "start": "vite",
     "build": "vite build && javascript-obfuscator ./dist/index.js --output ./dist/index.js --simplify false",
     "preview": "vite preview"
+  },
+  "dependencies": {
+    "howler": "^2.2.3"
   }
 }

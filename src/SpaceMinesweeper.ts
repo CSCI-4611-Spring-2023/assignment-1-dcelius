@@ -6,7 +6,9 @@
 
 import * as gfx from 'gophergfx'
 import { Mine } from './Mine';
-import { Laser } from './Laser';
+import { Boss } from './Boss';
+import { ShapeInstance, Vector2 } from 'gophergfx';
+import {Howl, Howler} from 'howler';
 
 export class SpaceMinesweeper extends gfx.GfxApp
 {
@@ -15,9 +17,26 @@ export class SpaceMinesweeper extends gfx.GfxApp
     private star: gfx.Rectangle;
     private laser: gfx.Rectangle;
     private mine: gfx.Rectangle;
+    private health: gfx.Rectangle;
+    private healthIcon: gfx.Rectangle;
+    private score: gfx.Rectangle;
+    private scoreIcon: gfx.Rectangle;
+    private gameStartSplash: gfx.Rectangle;
+    private bossResource: gfx.Rectangle;
+    private boss!: Boss;
+
+    private origin: gfx.Vector2;
+    private audioPlayer!: Howl;
+    private laserPlayer: Howl;
+    private bossAudioPlayer!: Howl;
+    private isAudioPlaying: boolean;
 
     // The stars will be drawn using a 2D particle system
     private starfield: gfx.Particles2;
+
+    private healthValue: number;
+    private scoreValue: number;
+    private hasBossSpawned: boolean;
 
     // These transforms are "groups" that are used to hold instances
     // of the same base object when they need to be placed in the scene
@@ -44,8 +63,25 @@ export class SpaceMinesweeper extends gfx.GfxApp
         this.star = new gfx.Rectangle();
         this.laser = new gfx.Rectangle();
         this.mine = new gfx.Rectangle();
+        this.health = new gfx.Rectangle();
+        this.healthIcon = new gfx.Rectangle();
+        this.score = new gfx.Rectangle();
+        this.scoreIcon = new gfx.Rectangle();
+        this.gameStartSplash = new gfx.Rectangle();
+        this.bossResource = new gfx.Rectangle();
+
+        this.laserPlayer = new Howl({
+            src: ['./audio/laserRetro_001.ogg'],
+            volume: 0.1,
+        });
+        this.origin = new gfx.Vector2(0,0);
 
         this.starfield = new gfx.Particles2(this.star, 200);
+
+        this.healthValue = 3;
+        this.scoreValue = 9;
+        this.isAudioPlaying = false;
+        this.hasBossSpawned = false;
 
         this.lasers = new gfx.Transform2();
         this.mines = new gfx.Transform2();
@@ -57,7 +93,7 @@ export class SpaceMinesweeper extends gfx.GfxApp
 
         // This parameter zooms in on the scene to fit within the window.
         // Other options include FIT or STRETCH.
-        this.renderer.viewport = gfx.Viewport.CROP;
+        this.renderer.viewport = gfx.Viewport.FIT;
     }
 
     createScene(): void 
@@ -76,6 +112,25 @@ export class SpaceMinesweeper extends gfx.GfxApp
         // Update the particle system position and sizes 
         this.starfield.update(true, true);
 
+        this.health.material.texture = new gfx.Text(this.healthValue.toString(), 200, 200, '28px monospace', 'white');
+        this.health.position = new gfx.Vector2(-0.8, 0.9);
+
+        this.score.material.texture = new gfx.Text(this.scoreValue.toString(), 200, 200, '28px monospace', 'white');
+        this.score.position = new gfx.Vector2(-0.8, 0.75);
+
+        this.healthIcon.material.texture = new gfx.Texture('./ship.png');
+        this.healthIcon.material.color.set(1, 0, 0.4, 1);
+        this.healthIcon.scale.set(0.08, 0.08);
+        this.healthIcon.position = new gfx.Vector2(-0.9, 0.912);
+
+        this.scoreIcon.material.texture = new gfx.Texture('./mine.png');
+        this.scoreIcon.material.color.set(1, 0.8, 0, 1);
+        this.scoreIcon.scale.set(0.08, 0.08);
+        this.scoreIcon.position = new gfx.Vector2(-0.9, 0.75);
+
+        this.gameStartSplash.material.texture = new gfx.Text("Click to Start", 250, 250, '28px monospace', 'white');
+        this.gameStartSplash.position = new gfx.Vector2(0, 0.25);
+
         // Set the laser to be a bright green color and scale the rectangle
         // so that it is in the shape of long, thin beam.
         this.laser.material.color.set(.247, .995, .284, 1);
@@ -86,7 +141,7 @@ export class SpaceMinesweeper extends gfx.GfxApp
         // to an appropriate size.
         this.mine.material.texture =  new gfx.Texture('./mine.png');
         this.mine.scale.set(0.12, 0.12);
-
+        
         // When the geometry for the rectangle is created, the bounding circle
         // and bounding box is computed automatically.  However, sometimes it
         // is useful to scale them manually so that they provide a better
@@ -101,6 +156,12 @@ export class SpaceMinesweeper extends gfx.GfxApp
         this.ship.material.texture = new gfx.Texture('./ship.png');
         this.ship.scale.set(0.08, 0.08);
 
+        this.bossResource.material.texture = new gfx.Texture('./boss.png');
+        this.bossResource.scale.set(0.6, 0.6);
+        this.bossResource.boundingCircle.radius *= .25;
+        this.bossResource.boundingBox.min.multiplyScalar(0.25);
+        this.bossResource.boundingBox.max.multiplyScalar(0.25);
+
         // Add all the objects to the scene. Note that the order is important!
         // Objects that are added later will be rendered on top of objects
         // that are added first. This is most important for the stars; because
@@ -109,6 +170,11 @@ export class SpaceMinesweeper extends gfx.GfxApp
         this.scene.add(this.lasers);
         this.scene.add(this.mines);
         this.scene.add(this.ship);
+        this.scene.add(this.health);
+        this.scene.add(this.healthIcon);
+        this.scene.add(this.score);
+        this.scene.add(this.scoreIcon);
+        this.scene.add(this.gameStartSplash);
     }
 
     update(deltaTime: number): void 
@@ -127,10 +193,33 @@ export class SpaceMinesweeper extends gfx.GfxApp
         const laserSpeed = 2 * deltaTime;
         const mineSpawnInterval = .5;
 
+        if (!this.isAudioPlaying) 
+        {
+            this.audioPlayer = new Howl({
+                src: ['./audio/background.mp3'],
+                autoplay: true,
+                loop: true,
+                volume: 0.5,
+            });
+            this.isAudioPlaying = true;
+        }
+
         // Point the ship wherever the mouse cursor is located.
         // Note that this.mousePosition has already been converted to
         // normalized device coordinates.
         this.ship.lookAt(this.mousePosition);
+
+        if (this.hasBossSpawned) {
+            this.boss.update(deltaTime);
+            this.boss.lookAt(this.origin);
+            if (this.boss.position.distanceTo(this.ship.position) > 0.6) this.boss.translateY(deltaTime * 0.3);
+            else this.boss.rotating();
+            if (this.boss.isRotating())
+            {
+                this.boss.translateX(deltaTime * 0.25);
+                this.boss.translateY(Math.cos(this.boss.getCos()) * 0.005);
+            }
+        }
 
         const objectDirection = moveDirection;
         objectDirection.multiplyScalar(-shipSpeed);
@@ -217,6 +306,8 @@ export class SpaceMinesweeper extends gfx.GfxApp
         // Check for laser-to-mine collisions
         this.checkForLaserCollisions();
 
+        this.checkForShipCollisions();
+
         // Check to see if enough time has elapsed since the last
         // mine was spawned, and if so, then call the function
         // to spawn a new mine.
@@ -235,11 +326,11 @@ export class SpaceMinesweeper extends gfx.GfxApp
     // and then add it to the this.lasers group.
     onMouseDown(event: MouseEvent): void 
     {
-        
-        const laserInstance = new Laser(this.laser);
+        this.gameStartSplash.remove();   
+        const laserInstance = new ShapeInstance(this.laser);
         this.lasers.add(laserInstance);
         laserInstance.rotation = this.ship.rotation;
-
+        this.laserPlayer.play();
     }
 
     // When the mouse moves, store the current position of the mouse.
@@ -321,19 +412,81 @@ export class SpaceMinesweeper extends gfx.GfxApp
     private checkForLaserCollisions(): void
     {
         this.lasers.children.forEach((laserElem: gfx.Transform2)=>{
+            const laser = laserElem as ShapeInstance;
             this.mines.children.forEach((mineElem: gfx.Transform2)=>{
 
                 // Type cast the element as a Mine object, as was done previously
                 // in the mine collision function.
                 const mine = mineElem as Mine;
-                const laser = laserElem as Laser;
                 
                 if (laser.intersects(mine, gfx.IntersectionMode2.AXIS_ALIGNED_BOUNDING_BOX)) 
                 {
+                    if (!mine.isExploding()) this.pointGet();
                     mine.explode();
                     laser.remove();
                 }
             });
+            if (this.hasBossSpawned)
+            if (laser.intersects(this.boss)) 
+            {
+                this.boss.damage();
+                laser.remove();
+            }
+        });
+    }
+
+    private gameOver(): void
+    {
+        const gameOverSplash = new gfx.Rectangle();
+        gameOverSplash.material.texture = new gfx.Text("GAME OVER", 200, 200, '28px monospace', 'white');
+        gameOverSplash.position.set(0,0);
+        this.scene.add(gameOverSplash);
+    }
+
+    private pointGet(): void
+    {
+        this.scoreValue += 1;
+        if (this.scoreValue >= 10 && !this.hasBossSpawned) this.spawnBoss(); 
+        this.score.material.texture = new gfx.Text(this.scoreValue.toString(), 200, 200, '28px monospace', 'white');
+    }
+
+    private spawnBoss(): void
+    {
+        this.boss = new Boss(this.bossResource);
+        this.boss.position = new Vector2(0, 1.25);
+        this.scene.add(this.boss);
+        this.audioPlayer.fade(0.5, 0.0, 3000);
+        this.audioPlayer.on("fade", this.audioPlayer.stop);
+        this.bossAudioPlayer = new Howl({
+            src: ['./audio/boss.mp3'],
+            autoplay: true,
+            loop: true,
+            volume: 0.0,
+        });
+        this.bossAudioPlayer.fade(0.0, 0.5, 3000);
+        this.hasBossSpawned = true;
+    }
+
+    private damageShip(): void 
+    {
+        if (this.healthValue >= 1)
+        {
+            this.healthValue -= 1;
+            if (this.healthValue == 0) this.gameOver();
+            this.health.material.texture = new gfx.Text(this.healthValue.toString(), 200, 200, '28px monospace', 'white');
+        }
+    }
+
+    private checkForShipCollisions(): void
+    {
+        this.mines.children.forEach((mineElem: gfx.Transform2)=>{
+            const mine = mineElem as Mine;
+            if (!mine.isExploding())
+            if (this.ship.intersects(mine)) 
+            {
+                this.damageShip();
+                mine.explode();
+            }
         });
     }
 }

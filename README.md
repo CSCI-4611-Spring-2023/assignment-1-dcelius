@@ -19,11 +19,15 @@ You should fill out this information before submitting your assignment.
 
 1. **Third Party Assets**. List the name and source of any third party assets that you added, such as models, images, sounds, or any other content used that was not solely written by you. 
 
-   `TO BE COMPLETED`
+   background.mp3 : https://www.fesliyanstudios.com/royalty-free-music/download/8-bit-retro-funk/883 
+   boss.mp3 : https://www.fesliyanstudios.com/royalty-free-music/download/boss-time/2340
+   laserRetro_001.ogg : kenney.nl - Sci-Fi Sounds Pack
+   boss.png : kenney.nl - Space Shooter Extension Pack
+
 
 2. **Wizard Bonus Functionality**. If you completed the wizard bonus challenge, then please provide a brief description along with any instructions for the person grading your assignment.
 
-   `TO BE COMPLETED`
+   Using the Howler.js library, music and laser sound effects were added. A life counter and score counter were also added on the left sidebar. Once the player reaches 10 points, a boss spawns and the music changes. The boss circles around the player and has 25 lives (plus a narrow bounding box). Once the player beats the boss, hooray!
 
 ## Prerequisites
 
