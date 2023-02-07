@@ -6,6 +6,7 @@
 
 import * as gfx from 'gophergfx'
 import { Mine } from './Mine';
+import { Laser } from './Laser';
 
 export class SpaceMinesweeper extends gfx.GfxApp
 {
@@ -131,7 +132,8 @@ export class SpaceMinesweeper extends gfx.GfxApp
         // normalized device coordinates.
         this.ship.lookAt(this.mousePosition);
 
-
+        const objectDirection = moveDirection;
+        objectDirection.multiplyScalar(-shipSpeed);
         // PART 1: STAR MOVEMENT
         // In class, we will make the ship move in the direction of the mouse.
         // Here, you are going to make each star move in the opposite direction.
@@ -140,9 +142,9 @@ export class SpaceMinesweeper extends gfx.GfxApp
         for(let i=0; i < this.starfield.numParticles; i++)
         {
             const starPosition = this.starfield.particlePositions[i];
-
-
-           // ADD YOUR CODE HERE
+            const starVelocity = objectDirection.clone();
+            starVelocity.multiplyScalar(this.starfield.particleSizes[i] * 100);
+            starPosition.add(starVelocity);
 
 
             // This code resets the position of the star if it has moved outside
@@ -171,8 +173,8 @@ export class SpaceMinesweeper extends gfx.GfxApp
         // it gradually spins as it moves.
         this.mines.children.forEach((mine: gfx.Transform2) => {
 
-            
-            // ADD YOUR CODE HERE
+            mine.position.add(objectDirection);
+            mine.rotation += mineRotation;
 
 
             // This code makes the mines "home" in on the ship position
@@ -195,9 +197,17 @@ export class SpaceMinesweeper extends gfx.GfxApp
         // from the scene by calling its remove() method.
         this.lasers.children.forEach((laser: gfx.Transform2) => {
             
+            laser.translateY(laserSpeed);
 
-            // ADD YOUR CODE HERE
+            if(laser.position.x > 1)
+                laser.remove();        
+            else if(laser.position.x < -1)
+                laser.remove(); 
 
+            if(laser.position.y > 1)
+                laser.remove();        
+            else if(laser.position.y < -1)
+                laser.remove(); 
 
         });  
 
@@ -226,7 +236,9 @@ export class SpaceMinesweeper extends gfx.GfxApp
     onMouseDown(event: MouseEvent): void 
     {
         
-        // ADD YOUR CODE HERE
+        const laserInstance = new Laser(this.laser);
+        this.lasers.add(laserInstance);
+        laserInstance.rotation = this.ship.rotation;
 
     }
 
@@ -287,7 +299,10 @@ export class SpaceMinesweeper extends gfx.GfxApp
                 const mine2 = this.mines.children[j] as Mine;
 
                 
-                // ADD YOUR CODE HERE
+                if (mine1.intersects(mine2)) {
+                    mine1.explode();
+                    mine2.explode();
+                }
 
 
             }
@@ -305,17 +320,19 @@ export class SpaceMinesweeper extends gfx.GfxApp
     // make the mine explode and immediately remove the laser from the scene.
     private checkForLaserCollisions(): void
     {
-        this.lasers.children.forEach((laser: gfx.Transform2)=>{
+        this.lasers.children.forEach((laserElem: gfx.Transform2)=>{
             this.mines.children.forEach((mineElem: gfx.Transform2)=>{
 
                 // Type cast the element as a Mine object, as was done previously
                 // in the mine collision function.
                 const mine = mineElem as Mine;
-
+                const laser = laserElem as Laser;
                 
-                // ADD YOUR CODE HERE
-
-                
+                if (laser.intersects(mine, gfx.IntersectionMode2.AXIS_ALIGNED_BOUNDING_BOX)) 
+                {
+                    mine.explode();
+                    laser.remove();
+                }
             });
         });
     }
