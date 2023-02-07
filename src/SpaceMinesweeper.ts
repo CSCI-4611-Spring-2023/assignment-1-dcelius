@@ -79,7 +79,7 @@ export class SpaceMinesweeper extends gfx.GfxApp
         this.starfield = new gfx.Particles2(this.star, 200);
 
         this.healthValue = 3;
-        this.scoreValue = 9;
+        this.scoreValue = 0;
         this.isAudioPlaying = false;
         this.hasBossSpawned = false;
 
@@ -212,7 +212,7 @@ export class SpaceMinesweeper extends gfx.GfxApp
         if (this.hasBossSpawned) {
             this.boss.update(deltaTime);
             this.boss.lookAt(this.origin);
-            if (this.boss.position.distanceTo(this.ship.position) > 0.6) this.boss.translateY(deltaTime * 0.3);
+            if (this.boss.position.distanceTo(this.ship.position) > 0.6) this.boss.translateY(deltaTime * 0.15);
             else this.boss.rotating();
             if (this.boss.isRotating())
             {
